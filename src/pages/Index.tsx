@@ -1,709 +1,644 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
-const AUTH_URL = "https://functions.poehali.dev/24e96f37-d805-41a0-addb-f1335f99fac8";
+type Page = "home" | "catalog" | "car" | "pricing";
 
-type Section = "home" | "chats" | "gallery" | "trends" | "profile" | "settings";
-
-interface Notification {
+interface Car {
   id: number;
-  text: string;
-  type: "message" | "trend" | "system";
-  time: string;
-  read: boolean;
-}
-
-interface Chat {
-  id: number;
-  name: string;
-  avatar: string;
-  lastMsg: string;
-  time: string;
-  unread: number;
-  online: boolean;
-}
-
-interface Meme {
-  id: number;
-  title: string;
+  brand: string;
+  model: string;
+  year: number;
+  price: number;
+  type: "sedan" | "suv" | "sport" | "moto";
   img: string;
-  likes: number;
-  comments: number;
-  author: string;
-  tag: string;
+  fuel: string;
+  power: number;
+  drive: string;
+  engine: string;
+  acceleration: number;
+  topSpeed: number;
+  consumption: number;
+  weight: number;
+  length: number;
+  isNew?: boolean;
+  isPremium?: boolean;
 }
 
-interface Trend {
-  id: number;
-  tag: string;
-  count: number;
-  growth: number;
-  img: string;
+const CARS: Car[] = [
+  {
+    id: 1, brand: "BMW", model: "M5 Competition", year: 2024, price: 12800000,
+    type: "sedan", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ae23a62c-5819-4bd2-8b83-6e64b714f23e.jpg",
+    fuel: "Бензин", power: 625, drive: "Полный", engine: "4.4л V8 Bi-Turbo",
+    acceleration: 3.3, topSpeed: 305, consumption: 11.5, weight: 1940, length: 4962, isNew: true, isPremium: true,
+  },
+  {
+    id: 2, brand: "Porsche", model: "Cayenne Turbo", year: 2024, price: 15200000,
+    type: "suv", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/7caaf104-1de9-4f78-816e-810b22fec90e.jpg",
+    fuel: "Бензин", power: 550, drive: "Полный", engine: "4.0л V8 Twin-Turbo",
+    acceleration: 3.9, topSpeed: 286, consumption: 13.1, weight: 2210, length: 4918, isPremium: true,
+  },
+  {
+    id: 3, brand: "Mercedes", model: "AMG GT 63", year: 2023, price: 18500000,
+    type: "sport", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/e4f282fc-fc20-4edf-9126-ef3f7eed4d28.jpg",
+    fuel: "Бензин", power: 639, drive: "Полный", engine: "4.0л V8 Bi-Turbo",
+    acceleration: 3.2, topSpeed: 315, consumption: 12.8, weight: 1880, length: 5055, isPremium: true,
+  },
+  {
+    id: 4, brand: "Ducati", model: "Panigale V4 S", year: 2024, price: 4200000,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/07463e89-ad3d-44bf-a1e8-4ce248c314f5.jpg",
+    fuel: "Бензин", power: 214, drive: "Цепь", engine: "1103cc V4",
+    acceleration: 2.8, topSpeed: 299, consumption: 6.8, weight: 198, length: 2100, isNew: true,
+  },
+  {
+    id: 5, brand: "Audi", model: "RS7 Sportback", year: 2023, price: 11400000,
+    type: "sedan", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ae23a62c-5819-4bd2-8b83-6e64b714f23e.jpg",
+    fuel: "Бензин", power: 600, drive: "Полный", engine: "4.0л V8 Bi-Turbo",
+    acceleration: 3.6, topSpeed: 280, consumption: 11.0, weight: 2025, length: 5015,
+  },
+  {
+    id: 6, brand: "Land Rover", model: "Defender 110", year: 2024, price: 9800000,
+    type: "suv", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/7caaf104-1de9-4f78-816e-810b22fec90e.jpg",
+    fuel: "Дизель", power: 300, drive: "Полный", engine: "3.0л I6 MHEV",
+    acceleration: 6.1, topSpeed: 191, consumption: 9.5, weight: 2380, length: 5018, isNew: true,
+  },
+  {
+    id: 7, brand: "Ferrari", model: "Roma", year: 2023, price: 25100000,
+    type: "sport", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/e4f282fc-fc20-4edf-9126-ef3f7eed4d28.jpg",
+    fuel: "Бензин", power: 620, drive: "Задний", engine: "3.9л V8 Twin-Turbo",
+    acceleration: 3.4, topSpeed: 320, consumption: 13.4, weight: 1570, length: 4656, isPremium: true,
+  },
+  {
+    id: 8, brand: "BMW", model: "M 1000 RR", year: 2024, price: 3800000,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/07463e89-ad3d-44bf-a1e8-4ce248c314f5.jpg",
+    fuel: "Бензин", power: 212, drive: "Цепь", engine: "999cc Inline-4",
+    acceleration: 3.1, topSpeed: 306, consumption: 6.5, weight: 193, length: 2090, isPremium: true,
+  },
+];
+
+const TYPE_LABELS: Record<string, string> = {
+  sedan: "Седан", suv: "Внедорожник", sport: "Спорткар", moto: "Мотоцикл"
+};
+const TYPES = ["all", "sedan", "suv", "sport", "moto"] as const;
+
+function formatPrice(p: number) {
+  return p >= 1000000
+    ? `${(p / 1000000).toFixed(1).replace(".0", "")} млн ₽`
+    : `${(p / 1000).toFixed(0)} тыс ₽`;
 }
 
-const CHATS: Chat[] = [
-  { id: 1, name: "НЕЙРО_МАКС", avatar: "NM", lastMsg: "этот мем — огонь 🔥", time: "22:14", unread: 3, online: true },
-  { id: 2, name: "ГЛиЧ_ДЕВОЧКА", avatar: "ГД", lastMsg: "хахаха всё, умерла", time: "21:58", unread: 0, online: true },
-  { id: 3, name: "ДАТА_ПРИЗРАК", avatar: "ДП", lastMsg: "видел тренд с котом?", time: "20:30", unread: 7, online: false },
-  { id: 4, name: "БАЙТ_РЕЙВ", avatar: "БР", lastMsg: "отправил 5 мемов", time: "19:11", unread: 0, online: true },
-  { id: 5, name: "КИБЕРША_404", avatar: "К4", lastMsg: "недоступна", time: "вчера", unread: 0, online: false },
-];
+function CarCard({ car, index, onOpen, isPro }: { car: Car; index: number; onOpen: (c: Car) => void; isPro: boolean }) {
+  return (
+    <div
+      className="bg-white border border-[#e8e8e8] rounded-sm overflow-hidden card-hover cursor-pointer fade-in group"
+      style={{ animationDelay: `${index * 50}ms` }}
+      onClick={() => onOpen(car)}
+    >
+      <div className="relative bg-[#f5f5f5] overflow-hidden" style={{ aspectRatio: "4/3" }}>
+        <img
+          src={car.img} alt={`${car.brand} ${car.model}`}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute top-3 left-3 flex gap-1.5">
+          {car.isNew && (
+            <span className="bg-[#111] text-white text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-sm">
+              New
+            </span>
+          )}
+          {car.isPremium && (
+            <span className="bg-[#c9a96e] text-white text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-sm">
+              Premium
+            </span>
+          )}
+        </div>
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm">
+          <span className="text-[11px] font-semibold text-[#111]">{TYPE_LABELS[car.type]}</span>
+        </div>
+      </div>
 
-const MEMES: Meme[] = [
-  { id: 1, title: "Когда баг в проде", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ee103960-c81d-46ef-9aa7-2479605461d6.jpg", likes: 4280, comments: 312, author: "НЕЙРО_МАКС", tag: "#devops" },
-  { id: 2, title: "Я в понедельник", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/385d3e4f-6ab2-4fcc-837d-68125ce5f523.jpg", likes: 2990, comments: 187, author: "ГЛиЧ_ДЕВОЧКА", tag: "#понедельник" },
-  { id: 3, title: "Нейросети захватывают", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ee103960-c81d-46ef-9aa7-2479605461d6.jpg", likes: 6110, comments: 544, author: "ДАТА_ПРИЗРАК", tag: "#ИИ" },
-  { id: 4, title: "Киберпанк реальность", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/385d3e4f-6ab2-4fcc-837d-68125ce5f523.jpg", likes: 3450, comments: 229, author: "БАЙТ_РЕЙВ", tag: "#future" },
-];
+      <div className="p-4">
+        <div className="mb-3">
+          <p className="text-[#bbb] text-xs mb-0.5">{car.year}</p>
+          <h3 className="font-playfair text-lg font-semibold text-[#111] leading-tight">
+            {car.brand} {car.model}
+          </h3>
+          <p className="text-[#111] font-semibold text-sm mt-1">{formatPrice(car.price)}</p>
+        </div>
 
-const TRENDS: Trend[] = [
-  { id: 1, tag: "#НЕЙРОКОТ", count: 142800, growth: 340, img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ee103960-c81d-46ef-9aa7-2479605461d6.jpg" },
-  { id: 2, tag: "#БАГИ_В_ПРОДЕ", count: 98200, growth: 210, img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/385d3e4f-6ab2-4fcc-837d-68125ce5f523.jpg" },
-  { id: 3, tag: "#КИБЕРПАНК_ЩАС", count: 76500, growth: 180, img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ee103960-c81d-46ef-9aa7-2479605461d6.jpg" },
-  { id: 4, tag: "#404_ПОНЕДЕЛЬНИК", count: 54300, growth: 95, img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/385d3e4f-6ab2-4fcc-837d-68125ce5f523.jpg" },
-  { id: 5, tag: "#МАТРИЦА_ПОНЯЛА", count: 43100, growth: 67, img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/ee103960-c81d-46ef-9aa7-2479605461d6.jpg" },
-];
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#f0f0f0]">
+          <div className="text-center">
+            <p className="text-[#111] font-semibold text-sm">{car.power}</p>
+            <p className="text-[#ccc] text-[10px]">л.с.</p>
+          </div>
+          <div className="text-center border-x border-[#f0f0f0]">
+            <p className="text-[#111] font-semibold text-sm">{car.acceleration}с</p>
+            <p className="text-[#ccc] text-[10px]">до 100</p>
+          </div>
+          <div className="text-center">
+            <p className={`font-semibold text-sm ${!isPro ? "blur-[3px] select-none text-[#ccc]" : "text-[#111]"}`}>
+              {car.topSpeed}
+            </p>
+            <p className="text-[#ccc] text-[10px]">макс. км/ч</p>
+          </div>
+        </div>
 
-const NOTIFS: Notification[] = [
-  { id: 1, text: "НЕЙРО_МАКС прислал мем: 'Когда баг...'", type: "message", time: "22:14", read: false },
-  { id: 2, text: "#НЕЙРОКОТ в топ-трендах! +340%", type: "trend", time: "22:00", read: false },
-  { id: 3, text: "ДАТА_ПРИЗРАК отправил 7 сообщений", type: "message", time: "20:30", read: false },
-  { id: 4, text: "Новый тренд: #БАГИ_В_ПРОДЕ взлетел!", type: "trend", time: "19:45", read: true },
-  { id: 5, text: "Системное обновление MEMEX v2.7.4", type: "system", time: "18:00", read: true },
-];
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  bio: string;
+        {!isPro && (
+          <div className="mt-2.5 flex items-center gap-1.5 text-[#c9a96e]">
+            <Icon name="Lock" size={11} />
+            <span className="text-[10px] font-medium">Полные данные по подписке</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-interface IndexProps {
-  user: User;
-  onLogout: () => void;
-}
+export default function Index() {
+  const [page, setPage] = useState<Page>("home");
+  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [filter, setFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "power">("price_asc");
+  const [isPro, setIsPro] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-export default function Index({ user, onLogout }: IndexProps) {
-  const [activeSection, setActiveSection] = useState<Section>("home");
-  const [showNotifs, setShowNotifs] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(NOTIFS);
-  const [activeChat, setActiveChat] = useState<Chat | null>(null);
-  const [messageInput, setMessageInput] = useState("");
-  const [likedMemes, setLikedMemes] = useState<number[]>([]);
-  const [showToast, setShowToast] = useState<string | null>(null);
-  const [toggleStates, setToggleStates] = useState({ msg: true, trend: true, sound: true, sys: false });
+  const filtered = CARS
+    .filter(c => filter === "all" || c.type === filter)
+    .sort((a, b) => {
+      if (sortBy === "price_asc") return a.price - b.price;
+      if (sortBy === "price_desc") return b.price - a.price;
+      return b.power - a.power;
+    });
 
-  const handleLogout = async () => {
-    const token = localStorage.getItem("memex_token");
-    if (token) {
-      await fetch(`${AUTH_URL}?action=logout`, {
-        method: "POST",
-        headers: { "X-Session-Token": token },
-      }).catch(() => {});
-      localStorage.removeItem("memex_token");
-    }
-    onLogout();
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const totalUnread = CHATS.reduce((s, c) => s + c.unread, 0);
-
-  useEffect(() => {
-    const msgs = [
-      "НЕЙРО_МАКС прислал новый мем!",
-      "#НЕЙРОКОТ снова в топе!",
-      "Новое сообщение от ГЛиЧ_ДЕВОЧКА",
-    ];
-    const timer = setInterval(() => {
-      const msg = msgs[Math.floor(Math.random() * msgs.length)];
-      setShowToast(msg);
-      setTimeout(() => setShowToast(null), 3500);
-    }, 14000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const markAllRead = () => {
-    setNotifications(n => n.map(x => ({ ...x, read: true })));
-  };
-
-  const navItems = [
-    { id: "home" as Section, icon: "Zap", label: "Главная", badge: 0 },
-    { id: "chats" as Section, icon: "MessageSquare", label: "Чаты", badge: totalUnread },
-    { id: "gallery" as Section, icon: "Image", label: "Галерея", badge: 0 },
-    { id: "trends" as Section, icon: "TrendingUp", label: "Тренды", badge: 0 },
-    { id: "profile" as Section, icon: "User", label: "Профиль", badge: 0 },
-    { id: "settings" as Section, icon: "Settings", label: "Настройки", badge: 0 },
-  ];
+  const openCar = (car: Car) => { setSelectedCar(car); setPage("car"); };
+  const nav = (p: Page) => { setPage(p); setMenuOpen(false); window.scrollTo(0, 0); };
 
   return (
-    <div className="min-h-screen font-rajdhani relative overflow-hidden" style={{ backgroundColor: "var(--dark-bg)", backgroundImage: "linear-gradient(rgba(0,255,245,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,245,0.03) 1px, transparent 1px)", backgroundSize: "30px 30px" }}>
-      {/* Ambient glows */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(0,255,245,0.04)" }} />
-      <div className="fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(191,0,255,0.04)" }} />
+    <div className="min-h-screen bg-[#fafafa] font-inter text-[#111]">
 
-      {/* Toast */}
-      {showToast && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
-          <div className="border px-4 py-3 flex items-center gap-3 min-w-72 backdrop-blur-md" style={{ backgroundColor: "rgba(13,17,23,0.95)", borderColor: "rgba(0,255,245,0.6)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
-            <div className="w-2 h-2 rounded-full pulse-dot" style={{ backgroundColor: "var(--neon-cyan)" }} />
-            <span className="font-mono-tech text-sm" style={{ color: "var(--neon-cyan)" }}>{showToast}</span>
-            <button onClick={() => setShowToast(null)} className="ml-auto opacity-50 hover:opacity-100 transition-opacity" style={{ color: "var(--neon-cyan)" }}>
-              <Icon name="X" size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: "rgba(6,8,16,0.92)", borderColor: "rgba(0,255,245,0.2)" }}>
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center border" style={{ backgroundColor: "rgba(0,255,245,0.08)", borderColor: "rgba(0,255,245,0.5)", boxShadow: "0 0 8px rgba(0,255,245,0.3)" }}>
-              <span className="font-orbitron text-xs font-bold" style={{ color: "var(--neon-cyan)" }}>MX</span>
+      {/* ─── HEADER ─── */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[#ebebeb]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <button onClick={() => nav("home")} className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-7 h-7 bg-[#111] flex items-center justify-center rounded-sm">
+              <span className="text-white text-[10px] font-bold tracking-wide">AC</span>
             </div>
-            <span className="font-orbitron text-lg font-bold tracking-widest" style={{ color: "var(--neon-cyan)", textShadow: "0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan)" }}>MEMEX</span>
-            <span className="font-mono-tech text-xs hidden sm:block" style={{ color: "rgba(0,255,245,0.25)" }}>// v2.7.4</span>
-          </div>
+            <span className="font-playfair text-[1.1rem] font-semibold text-[#111] tracking-tight">AutoCraft</span>
+          </button>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-sm border" style={{ backgroundColor: "rgba(0,255,136,0.08)", borderColor: "rgba(0,255,136,0.3)" }}>
-              <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ backgroundColor: "var(--neon-green)", color: "var(--neon-green)" }} />
-              <span className="font-mono-tech text-xs" style={{ color: "var(--neon-green)" }}>ОНЛАЙН: 4,219</span>
-            </div>
-
-            <button
-              onClick={() => setShowNotifs(!showNotifs)}
-              className="relative p-2 border transition-all"
-              style={{ borderColor: showNotifs ? "rgba(0,255,245,0.6)" : "rgba(0,255,245,0.25)", backgroundColor: showNotifs ? "rgba(0,255,245,0.08)" : "transparent" }}
-            >
-              <Icon name="Bell" size={18} style={{ color: "var(--neon-cyan)" }} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-xs flex items-center justify-center rounded-full font-bold pulse-dot" style={{ backgroundColor: "var(--neon-pink)" }}>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            <div className="w-8 h-8 flex items-center justify-center cursor-pointer hex-avatar" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }} onClick={() => setActiveSection("profile")}>
-              <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* NOTIFICATION PANEL */}
-      {showNotifs && (
-        <div className="fixed top-14 right-4 z-40 w-80 border animate-fade-in backdrop-blur-md" style={{ backgroundColor: "rgba(13,17,23,0.97)", borderColor: "rgba(0,255,245,0.35)", clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)" }}>
-          <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: "rgba(0,255,245,0.15)" }}>
-            <span className="font-orbitron text-sm font-bold" style={{ color: "var(--neon-cyan)" }}>УВЕДОМЛЕНИЯ</span>
-            <button onClick={markAllRead} className="font-mono-tech text-xs transition-colors hover:opacity-100 opacity-50" style={{ color: "var(--neon-cyan)" }}>
-              ПРОЧИТАТЬ ВСЁ
-            </button>
-          </div>
-          <div className="max-h-72 overflow-y-auto">
-            {notifications.map(n => (
-              <div key={n.id} className="p-3 border-b flex gap-3 transition-all" style={{ borderColor: "rgba(0,255,245,0.08)", backgroundColor: !n.read ? "rgba(0,255,245,0.04)" : "transparent" }}>
-                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read ? 'pulse-dot' : ''}`} style={{ backgroundColor: n.type === 'message' ? "var(--neon-cyan)" : n.type === 'trend' ? "var(--neon-pink)" : "var(--neon-purple)" }} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-rajdhani text-sm leading-tight" style={{ color: "rgba(255,255,255,0.85)" }}>{n.text}</p>
-                  <span className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{n.time}</span>
-                </div>
-              </div>
+          <nav className="hidden md:flex items-center gap-8">
+            {([
+              ["Главная", "home"],
+              ["Каталог", "catalog"],
+              ["Подписка", "pricing"],
+            ] as [string, Page][]).map(([label, p]) => (
+              <button
+                key={p} onClick={() => nav(p)}
+                className={`text-sm font-medium transition-colors ${page === p ? "text-[#111]" : "text-[#999] hover:text-[#333]"}`}
+              >
+                {label}
+              </button>
             ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex pt-14 min-h-screen">
-        {/* SIDEBAR */}
-        <aside className="fixed left-0 top-14 bottom-0 w-16 lg:w-56 border-r z-30 flex flex-col" style={{ backgroundColor: "rgba(6,8,16,0.88)", borderColor: "rgba(0,255,245,0.15)", backdropFilter: "blur(12px)" }}>
-          <nav className="flex-1 py-4 space-y-1 px-2">
-            {navItems.map((item, i) => {
-              const active = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => { setActiveSection(item.id); setActiveChat(null); setShowNotifs(false); }}
-                  style={{ animationDelay: `${i * 60}ms` }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 transition-all relative group animate-fade-in border-l-2"
-                  style={{
-                    borderLeftColor: active ? "var(--neon-cyan)" : "transparent",
-                    backgroundColor: active ? "rgba(0,255,245,0.07)" : "transparent",
-                  }}
-                >
-                  <Icon
-                    name={item.icon}
-                    size={18}
-                    style={{ color: active ? "var(--neon-cyan)" : "rgba(255,255,255,0.4)", filter: active ? "drop-shadow(0 0 4px var(--neon-cyan))" : "none" }}
-                  />
-                  <span className="hidden lg:block font-rajdhani font-semibold text-sm tracking-wider" style={{ color: active ? "var(--neon-cyan)" : "rgba(255,255,255,0.55)" }}>
-                    {item.label}
-                  </span>
-                  {item.badge > 0 && (
-                    <>
-                      <span className="hidden lg:flex ml-auto w-5 h-5 text-white text-xs items-center justify-center font-bold pulse-dot rounded-sm" style={{ backgroundColor: "var(--neon-pink)" }}>
-                        {item.badge}
-                      </span>
-                      <span className="lg:hidden absolute top-1 right-1 w-2.5 h-2.5 rounded-full pulse-dot" style={{ backgroundColor: "var(--neon-pink)" }} />
-                    </>
-                  )}
-                </button>
-              );
-            })}
           </nav>
 
-          <div className="p-3 border-t" style={{ borderColor: "rgba(0,255,245,0.12)" }}>
-            <div className="flex items-center gap-2 px-1">
-              <div className="w-7 h-7 hex-avatar flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }}>
-                <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
-              </div>
-              <div className="hidden lg:block min-w-0">
-                <p className="font-orbitron text-xs font-bold truncate" style={{ color: "var(--neon-cyan)" }}>{user.username.toUpperCase()}</p>
-                <p className="font-mono-tech text-xs truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{user.email}</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-3">
+            {isPro && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-[#c9a96e] text-xs font-semibold bg-[#c9a96e]/10 border border-[#c9a96e]/25 px-2.5 py-1 rounded-full">
+                <Icon name="Crown" size={11} /> PRO
+              </span>
+            )}
+            <button
+              onClick={() => nav("pricing")}
+              className={`hidden sm:block text-sm px-4 py-2 rounded-sm font-medium transition-all ${
+                isPro
+                  ? "bg-[#f0f0f0] text-[#555] hover:bg-[#e8e8e8]"
+                  : "bg-[#111] text-white hover:bg-[#333]"
+              }`}
+            >
+              {isPro ? "Мой план" : "Получить доступ"}
+            </button>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-1.5 text-[#555]">
+              <Icon name={menuOpen ? "X" : "Menu"} size={20} />
+            </button>
           </div>
-        </aside>
+        </div>
 
-        {/* CONTENT */}
-        <main className="flex-1 ml-16 lg:ml-56 min-h-screen p-4 lg:p-6">
+        {menuOpen && (
+          <div className="md:hidden bg-white border-t border-[#ebebeb] px-5 py-3 space-y-0">
+            {([["Главная", "home"], ["Каталог", "catalog"], ["Подписка", "pricing"]] as [string, Page][]).map(([label, p]) => (
+              <button
+                key={p} onClick={() => nav(p)}
+                className="w-full text-left py-3 text-sm font-medium text-[#444] border-b border-[#f5f5f5] last:border-0"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </header>
 
-          {/* HOME */}
-          {activeSection === "home" && (
-            <div className="animate-fade-in">
-              <div className="mb-6">
-                <h1 className="font-orbitron text-2xl font-bold mb-1" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan)" }}>ДОБРО ПОЖАЛОВАТЬ</h1>
-                <p className="font-mono-tech text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>// СИСТЕМА АКТИВИРОВАНА · {new Date().toLocaleString('ru')}</p>
+      <div className="pt-16">
+
+        {/* ─── HOME ─── */}
+        {page === "home" && (
+          <>
+            {/* Hero */}
+            <section className="relative bg-[#0f0f0f] min-h-[88vh] flex items-center overflow-hidden">
+              <div className="absolute inset-0">
+                <img
+                  src="https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/e4f282fc-fc20-4edf-9126-ef3f7eed4d28.jpg"
+                  alt="" className="w-full h-full object-cover opacity-25"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f0f] via-[#0f0f0f]/85 to-[#0f0f0f]/30" />
               </div>
-
-              {/* Hero banner */}
-              <div className="relative border overflow-hidden mb-6 h-48 lg:h-64" style={{ borderColor: "rgba(0,255,245,0.25)", clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))" }}>
-                <img src="https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/3684833f-112a-4f3b-870b-f7ccbc50e24c.jpg" alt="Cyberpunk City" className="w-full h-full object-cover opacity-55" />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to right, var(--dark-bg) 0%, rgba(6,8,16,0.4) 60%, transparent 100%)" }} />
-                <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                  <p className="font-mono-tech text-xs mb-1" style={{ color: "rgba(0,255,245,0.55)" }}>СЕГОДНЯШНИЙ ТРЕНД</p>
-                  <h2 className="font-orbitron text-xl lg:text-3xl font-black mb-2" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan)" }}>#НЕЙРОКОТ</h2>
-                  <div className="flex gap-4 text-sm">
-                    <span className="font-mono-tech font-bold" style={{ color: "var(--neon-green)", textShadow: "0 0 8px var(--neon-green)" }}>▲ +340%</span>
-                    <span className="font-mono-tech" style={{ color: "rgba(255,255,255,0.5)" }}>142,800 постов</span>
+              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24">
+                <div className="max-w-lg">
+                  <p className="text-[#c9a96e] text-xs font-semibold tracking-[0.25em] uppercase mb-5 fade-in">
+                    Премиальный каталог
+                  </p>
+                  <h1 className="font-playfair text-5xl sm:text-6xl lg:text-[4.5rem] font-semibold text-white leading-[1.06] mb-6 fade-in-delay-1">
+                    Найдите<br />своё авто
+                  </h1>
+                  <p className="text-white/55 text-lg leading-relaxed mb-10 fade-in-delay-2">
+                    Подробные характеристики, сравнения и данные на сотни автомобилей и мотоциклов.
+                  </p>
+                  <div className="flex flex-wrap gap-3 fade-in-delay-3">
+                    <button onClick={() => nav("catalog")} className="btn-gold px-7 py-3.5 rounded-sm text-sm">
+                      Открыть каталог
+                    </button>
+                    <button
+                      onClick={() => nav("pricing")}
+                      className="px-7 py-3.5 rounded-sm text-sm font-medium text-white border border-white/25 hover:border-white/50 transition-all"
+                    >
+                      Тарифы
+                    </button>
                   </div>
                 </div>
-                {/* Scanlines overlay */}
-                <div className="absolute inset-0 pointer-events-none" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px)" }} />
               </div>
+            </section>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            {/* Stats */}
+            <section className="bg-white border-b border-[#ebebeb]">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
-                  { label: "МЕМОВ СЕГОДНЯ", val: "1,284", icon: "Image", color: "var(--neon-cyan)", border: "rgba(0,255,245,0.25)" },
-                  { label: "АКТИВНЫХ ЧАТОВ", val: "23", icon: "MessageSquare", color: "var(--neon-purple)", border: "rgba(191,0,255,0.25)" },
-                  { label: "В ТОПЕ", val: "5", icon: "TrendingUp", color: "var(--neon-pink)", border: "rgba(255,0,106,0.25)" },
-                  { label: "НОВЫХ ПОДПИСОК", val: "+47", icon: "Users", color: "var(--neon-green)", border: "rgba(0,255,136,0.25)" },
-                ].map(s => (
-                  <div key={s.label} className="p-4 border" style={{ backgroundColor: "rgba(13,17,23,0.85)", borderColor: s.border, clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
-                    <Icon name={s.icon} size={16} className="mb-2" style={{ color: s.color }} />
-                    <p className="font-orbitron text-xl font-bold" style={{ color: s.color, textShadow: `0 0 10px ${s.color}` }}>{s.val}</p>
-                    <p className="font-mono-tech text-xs mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>{s.label}</p>
+                  { val: "500+", label: "Автомобилей" },
+                  { val: "80+", label: "Мотоциклов" },
+                  { val: "50+", label: "Характеристик" },
+                  { val: "12K+", label: "Подписчиков" },
+                ].map((s, i) => (
+                  <div key={i} className="text-center py-4">
+                    <p className="font-playfair text-3xl sm:text-4xl font-semibold text-[#111] mb-1">{s.val}</p>
+                    <p className="text-[#999] text-sm">{s.label}</p>
                   </div>
                 ))}
               </div>
+            </section>
 
-              {/* Hot memes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-orbitron text-sm font-bold" style={{ color: "var(--neon-pink)", textShadow: "0 0 8px var(--neon-pink)" }}>// ГОРЯЧИЕ МЕМЫ</h3>
-                  <button onClick={() => setActiveSection("gallery")} className="font-mono-tech text-xs transition-colors" style={{ color: "rgba(255,255,255,0.35)" }}>СМОТРЕТЬ ВСЕ →</button>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {MEMES.map(m => (
-                    <div key={m.id} className="border overflow-hidden group cursor-pointer transition-all" style={{ backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(0,255,245,0.15)", clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}>
-                      <div className="relative h-32 overflow-hidden">
-                        <img src={m.img} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)" }} />
-                        <div className="absolute bottom-0 left-0 right-0 p-2" style={{ background: "linear-gradient(to top, var(--dark-bg), transparent)" }}>
-                          <span className="font-mono-tech text-xs" style={{ color: "var(--neon-cyan)" }}>{m.tag}</span>
-                        </div>
-                      </div>
-                      <div className="p-2">
-                        <p className="font-rajdhani font-semibold text-sm truncate" style={{ color: "rgba(255,255,255,0.85)" }}>{m.title}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="font-mono-tech text-xs" style={{ color: "var(--neon-pink)" }}>{m.likes.toLocaleString()} ❤</span>
-                          <span className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{m.comments} 💬</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* CHATS */}
-          {activeSection === "chats" && (
-            <div className="animate-fade-in">
-              <h1 className="font-orbitron text-2xl font-bold mb-6" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan)" }}>ЧАТЫ</h1>
-              <div className="flex gap-4" style={{ height: "calc(100vh - 180px)" }}>
-                {/* Chat list */}
-                <div className="w-60 flex-shrink-0 space-y-1 overflow-y-auto pr-1">
-                  {CHATS.map(chat => (
-                    <button
-                      key={chat.id}
-                      onClick={() => setActiveChat(chat)}
-                      className="w-full flex items-center gap-3 p-3 border transition-all text-left"
-                      style={{
-                        backgroundColor: activeChat?.id === chat.id ? "rgba(0,255,245,0.06)" : "rgba(13,17,23,0.7)",
-                        borderColor: activeChat?.id === chat.id ? "rgba(0,255,245,0.5)" : "rgba(0,255,245,0.12)",
-                        clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))",
-                      }}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <div className="w-9 h-9 hex-avatar border flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(0,255,245,0.2), rgba(191,0,255,0.2))", borderColor: "rgba(0,255,245,0.3)" }}>
-                          <span className="font-orbitron text-xs font-bold" style={{ color: "var(--neon-cyan)" }}>{chat.avatar}</span>
-                        </div>
-                        {chat.online && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 pulse-dot" style={{ backgroundColor: "var(--neon-green)", borderColor: "var(--dark-bg)" }} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="font-orbitron text-xs font-bold truncate" style={{ color: "rgba(255,255,255,0.88)" }}>{chat.name}</span>
-                          <span className="font-mono-tech text-xs flex-shrink-0 ml-1" style={{ color: "rgba(255,255,255,0.28)" }}>{chat.time}</span>
-                        </div>
-                        <p className="font-rajdhani text-xs truncate mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{chat.lastMsg}</p>
-                      </div>
-                      {chat.unread > 0 && (
-                        <span className="w-5 h-5 text-white text-xs flex items-center justify-center font-bold flex-shrink-0 pulse-dot" style={{ backgroundColor: "var(--neon-pink)" }}>
-                          {chat.unread}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Chat window */}
-                <div className="flex-1 border flex flex-col overflow-hidden" style={{ backgroundColor: "rgba(13,17,23,0.8)", borderColor: "rgba(0,255,245,0.2)", clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))" }}>
-                  {activeChat ? (
-                    <>
-                      <div className="p-3 border-b flex items-center gap-3" style={{ borderColor: "rgba(0,255,245,0.15)" }}>
-                        <div className="relative">
-                          <div className="w-8 h-8 hex-avatar flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(0,255,245,0.25), rgba(191,0,255,0.25))" }}>
-                            <span className="font-orbitron text-xs" style={{ color: "var(--neon-cyan)" }}>{activeChat.avatar}</span>
-                          </div>
-                          {activeChat.online && <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full pulse-dot" style={{ backgroundColor: "var(--neon-green)" }} />}
-                        </div>
-                        <div>
-                          <p className="font-orbitron text-sm font-bold" style={{ color: "var(--neon-cyan)", textShadow: "0 0 8px var(--neon-cyan)" }}>{activeChat.name}</p>
-                          <p className="font-mono-tech text-xs" style={{ color: activeChat.online ? "rgba(0,255,136,0.7)" : "rgba(255,255,255,0.3)" }}>{activeChat.online ? '● ОНЛАЙН' : '○ ОФФЛАЙН'}</p>
-                        </div>
-                        <div className="ml-auto flex gap-2">
-                          <button className="p-1.5 border transition-all" style={{ borderColor: "rgba(0,255,245,0.2)", color: "rgba(255,255,255,0.4)" }}>
-                            <Icon name="Phone" size={14} />
-                          </button>
-                          <button className="p-1.5 border transition-all" style={{ borderColor: "rgba(0,255,245,0.2)", color: "rgba(255,255,255,0.4)" }}>
-                            <Icon name="MoreVertical" size={14} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                        {[
-                          { from: activeChat.name, msg: "Привет! Видел этот мем про нейросети?", time: "21:50", own: false },
-                          { from: "Вы", msg: "Хахаха, огонь! Отправь ссылку", time: "21:52", own: true },
-                          { from: activeChat.name, msg: activeChat.lastMsg, time: activeChat.time, own: false },
-                        ].map((msg, i) => (
-                          <div key={i} className={`flex ${msg.own ? 'justify-end' : 'justify-start'}`}>
-                            <div className="max-w-xs px-3 py-2 border" style={{
-                              backgroundColor: msg.own ? "rgba(0,255,245,0.1)" : "rgba(191,0,255,0.08)",
-                              borderColor: msg.own ? "rgba(0,255,245,0.3)" : "rgba(191,0,255,0.25)",
-                              clipPath: msg.own
-                                ? "polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px))"
-                                : "polygon(0 0, 100% 0, calc(100% - 0px) 100%, 0 100%)",
-                            }}>
-                              {!msg.own && <p className="font-orbitron text-xs mb-1" style={{ color: "var(--neon-cyan)" }}>{msg.from}</p>}
-                              <p className="font-rajdhani text-sm" style={{ color: "rgba(255,255,255,0.88)" }}>{msg.msg}</p>
-                              <p className="font-mono-tech text-xs mt-1 text-right" style={{ color: "rgba(255,255,255,0.28)" }}>{msg.time}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="p-3 border-t flex gap-2" style={{ borderColor: "rgba(0,255,245,0.15)" }}>
-                        <button className="p-2 border transition-all" style={{ borderColor: "rgba(0,255,245,0.2)", color: "rgba(255,255,255,0.4)" }}>
-                          <Icon name="Image" size={16} />
-                        </button>
-                        <input
-                          value={messageInput}
-                          onChange={e => setMessageInput(e.target.value)}
-                          placeholder="ВВЕДИТЕ СООБЩЕНИЕ..."
-                          className="flex-1 px-3 py-2 font-mono-tech text-sm outline-none transition-all border"
-                          style={{ backgroundColor: "rgba(6,8,16,0.8)", borderColor: "rgba(0,255,245,0.2)", color: "rgba(255,255,255,0.88)" }}
-                          onKeyDown={e => { if (e.key === 'Enter') setMessageInput(""); }}
-                        />
-                        <button className="px-4 py-2 border transition-all" style={{ backgroundColor: "rgba(0,255,245,0.1)", borderColor: "rgba(0,255,245,0.5)", color: "var(--neon-cyan)", clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}>
-                          <Icon name="Send" size={16} />
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                      <Icon name="MessageSquare" size={48} className="mb-4 animate-float" style={{ color: "rgba(0,255,245,0.18)" }} />
-                      <p className="font-orbitron text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>ВЫБЕРИТЕ ЧАТ</p>
-                      <p className="font-mono-tech text-xs mt-2" style={{ color: "rgba(255,255,255,0.15)" }}>// для начала разговора</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* GALLERY */}
-          {activeSection === "gallery" && (
-            <div className="animate-fade-in">
-              <div className="flex items-center justify-between mb-6">
+            {/* Featured */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+              <div className="flex items-end justify-between mb-10">
                 <div>
-                  <h1 className="font-orbitron text-2xl font-bold" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan)" }}>ГАЛЕРЕЯ МЕМОВ</h1>
-                  <p className="font-mono-tech text-sm mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>// 4,219 мемов в базе</p>
+                  <span className="block w-10 h-0.5 bg-[#c9a96e] mb-4" />
+                  <h2 className="font-playfair text-3xl sm:text-4xl font-semibold text-[#111]">Избранное</h2>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 border transition-all font-orbitron text-sm font-bold" style={{ backgroundColor: "rgba(255,0,106,0.1)", borderColor: "rgba(255,0,106,0.5)", color: "var(--neon-pink)", clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}>
-                  <Icon name="Plus" size={16} />
-                  ЗАГРУЗИТЬ МЕМ
+                <button onClick={() => nav("catalog")} className="text-sm text-[#999] hover:text-[#111] transition-colors flex items-center gap-1.5">
+                  Весь каталог <Icon name="ArrowRight" size={14} />
                 </button>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {CARS.filter(c => c.isPremium).slice(0, 3).map((car, i) => (
+                  <CarCard key={car.id} car={car} index={i} onOpen={openCar} isPro={isPro} />
+                ))}
+              </div>
+            </section>
 
-              <div className="flex gap-2 mb-4 flex-wrap">
-                {["ВСЕ", "#devops", "#понедельник", "#ИИ", "#future", "#коты"].map(tag => (
-                  <button key={tag} className="font-mono-tech text-xs px-3 py-1 border transition-all" style={{ borderColor: "rgba(0,255,245,0.2)", color: "rgba(255,255,255,0.45)" }}>
-                    {tag}
+            {/* Moto section */}
+            <section className="bg-white border-y border-[#ebebeb]">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+                <div className="flex items-end justify-between mb-10">
+                  <div>
+                    <span className="block w-10 h-0.5 bg-[#c9a96e] mb-4" />
+                    <h2 className="font-playfair text-3xl sm:text-4xl font-semibold text-[#111]">Мотоциклы</h2>
+                  </div>
+                  <button onClick={() => { setFilter("moto"); nav("catalog"); }} className="text-sm text-[#999] hover:text-[#111] transition-colors flex items-center gap-1.5">
+                    Все мото <Icon name="ArrowRight" size={14} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {CARS.filter(c => c.type === "moto").map((car, i) => (
+                    <CarCard key={car.id} car={car} index={i} onOpen={openCar} isPro={isPro} />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section className="bg-[#111] text-white">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 py-24 text-center">
+                <span className="block w-10 h-0.5 bg-[#c9a96e] mx-auto mb-6" />
+                <h2 className="font-playfair text-3xl sm:text-4xl font-semibold mb-4">
+                  Полный доступ к каталогу
+                </h2>
+                <p className="text-white/45 text-base max-w-sm mx-auto mb-8 leading-relaxed">
+                  Все характеристики, сравнения и фильтры без ограничений — от 990 ₽/мес
+                </p>
+                <button onClick={() => nav("pricing")} className="btn-gold px-8 py-3.5 rounded-sm text-sm">
+                  Выбрать тариф
+                </button>
+              </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="bg-white border-t border-[#ebebeb]">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-[#111] flex items-center justify-center rounded-sm">
+                    <span className="text-white text-[9px] font-bold">AC</span>
+                  </div>
+                  <span className="font-playfair text-sm font-semibold">AutoCraft</span>
+                </div>
+                <p className="text-[#ccc] text-xs">© 2024 AutoCraft. Все права защищены.</p>
+              </div>
+            </footer>
+          </>
+        )}
+
+        {/* ─── CATALOG ─── */}
+        {page === "catalog" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+            <div className="mb-8">
+              <p className="text-[#c9a96e] text-xs font-semibold tracking-[0.2em] uppercase mb-2">Каталог</p>
+              <h1 className="font-playfair text-3xl sm:text-4xl font-semibold text-[#111]">
+                Все автомобили и мотоциклы
+              </h1>
+              <p className="text-[#999] text-sm mt-1">{CARS.length} позиций в базе</p>
+            </div>
+
+            {/* Filters bar */}
+            <div className="bg-white border border-[#ebebeb] rounded-sm p-4 mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-wrap gap-2">
+                {TYPES.map(t => (
+                  <button
+                    key={t} onClick={() => setFilter(t)}
+                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-sm transition-all ${
+                      filter === t ? "bg-[#111] text-white" : "bg-[#f5f5f5] text-[#777] hover:bg-[#eee] hover:text-[#333]"
+                    }`}
+                  >
+                    {t === "all" ? "Все" : TYPE_LABELS[t]}
                   </button>
                 ))}
               </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {[...MEMES, ...MEMES].map((m, i) => (
-                  <div
-                    key={`${m.id}-${i}`}
-                    style={{ animationDelay: `${i * 50}ms`, backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(0,255,245,0.12)", clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}
-                    className="border overflow-hidden group cursor-pointer transition-all animate-fade-in hover:border-cyan-400/40"
-                  >
-                    <div className="relative h-40 overflow-hidden">
-                      <img src={m.img} alt={m.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)" }} />
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(6,8,16,0.9) 0%, transparent 60%)" }} />
-                      <div className="absolute top-2 right-2 border px-2 py-0.5" style={{ backgroundColor: "rgba(6,8,16,0.7)", borderColor: "rgba(255,0,106,0.4)" }}>
-                        <span className="font-mono-tech text-xs" style={{ color: "var(--neon-pink)" }}>{m.tag}</span>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <p className="font-rajdhani font-bold text-sm mb-1" style={{ color: "rgba(255,255,255,0.88)" }}>{m.title}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>@{m.author}</span>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => setLikedMemes(l => l.includes(m.id + i * 100) ? l.filter(x => x !== m.id + i * 100) : [...l, m.id + i * 100])}
-                            className="font-mono-tech text-xs flex items-center gap-1 transition-colors"
-                            style={{ color: likedMemes.includes(m.id + i * 100) ? "var(--neon-pink)" : "rgba(255,255,255,0.35)" }}
-                          >
-                            <Icon name="Heart" size={12} />
-                            {m.likes.toLocaleString()}
-                          </button>
-                          <span className="font-mono-tech text-xs flex items-center gap-1" style={{ color: "rgba(255,255,255,0.28)" }}>
-                            <Icon name="MessageCircle" size={12} />
-                            {m.comments}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs text-[#bbb]">Сортировка:</span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                  className="text-xs border border-[#e8e8e8] rounded-sm px-3 py-1.5 bg-white text-[#444] outline-none cursor-pointer"
+                >
+                  <option value="price_asc">Цена ↑</option>
+                  <option value="price_desc">Цена ↓</option>
+                  <option value="power">Мощность</option>
+                </select>
               </div>
             </div>
-          )}
 
-          {/* TRENDS */}
-          {activeSection === "trends" && (
-            <div className="animate-fade-in">
-              <div className="mb-6">
-                <h1 className="font-orbitron text-2xl font-bold" style={{ color: "var(--neon-pink)", textShadow: "0 0 20px var(--neon-pink)" }}>ПОПУЛЯРНЫЕ ТРЕНДЫ</h1>
-                <p className="font-mono-tech text-sm mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>// обновлено 5 минут назад</p>
+            {!isPro && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-sm p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <Icon name="Lock" size={15} className="text-[#c9a96e] flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-[#666]">
+                    <span className="font-semibold text-[#333]">Бесплатный план: </span>
+                    показаны только базовые параметры. Подпишитесь для доступа ко всем характеристикам.
+                  </p>
+                </div>
+                <button onClick={() => nav("pricing")} className="btn-gold px-4 py-2 rounded-sm text-xs whitespace-nowrap flex-shrink-0">
+                  Открыть доступ
+                </button>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                {TRENDS.map((t, i) => (
-                  <div
-                    key={t.id}
-                    style={{ animationDelay: `${i * 80}ms`, backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(255,0,106,0.2)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}
-                    className="border overflow-hidden flex group cursor-pointer transition-all animate-fade-in hover:border-pink-500/40"
-                  >
-                    <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
-                      <img src={t.img} alt={t.tag} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" style={{ filter: "hue-rotate(280deg) saturate(1.5)" }} />
-                    </div>
-                    <div className="flex-1 p-4 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-orbitron text-xs font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>#{i + 1}</span>
-                          <span className="font-orbitron text-sm font-bold" style={{ color: "var(--neon-pink)", textShadow: "0 0 8px var(--neon-pink)" }}>{t.tag}</span>
-                        </div>
-                        <p className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{t.count.toLocaleString()} постов</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-orbitron text-lg font-black" style={{ color: "var(--neon-green)", textShadow: "0 0 10px var(--neon-green)" }}>▲{t.growth}%</span>
-                        <p className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.28)" }}>за 24ч</p>
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {filtered.map((car, i) => (
+                <CarCard key={car.id} car={car} index={i} onOpen={openCar} isPro={isPro} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── CAR DETAIL ─── */}
+        {page === "car" && selectedCar && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+            <button
+              onClick={() => setPage("catalog")}
+              className="flex items-center gap-2 text-sm text-[#999] hover:text-[#111] transition-colors mb-8"
+            >
+              <Icon name="ArrowLeft" size={14} /> Назад в каталог
+            </button>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+              {/* Image */}
+              <div>
+                <div className="bg-[#f5f5f5] rounded-sm overflow-hidden relative" style={{ aspectRatio: "4/3" }}>
+                  <img src={selectedCar.img} alt={`${selectedCar.brand} ${selectedCar.model}`} className="w-full h-full object-cover" />
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    {selectedCar.isNew && (
+                      <span className="bg-[#111] text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">New</span>
+                    )}
+                    {selectedCar.isPremium && (
+                      <span className="bg-[#c9a96e] text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">Premium</span>
+                    )}
                   </div>
-                ))}
-              </div>
-
-              <div className="border p-4" style={{ backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(0,255,245,0.18)", clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))" }}>
-                <h3 className="font-orbitron text-sm font-bold mb-4" style={{ color: "var(--neon-cyan)" }}>// ГРАФИК АКТИВНОСТИ</h3>
-                <div className="flex items-end gap-1 h-20">
-                  {[30,50,40,80,60,90,70,100,85,75,95,88].map((h, i) => (
-                    <div key={i} className="flex-1">
-                      <div
-                        className="w-full transition-all cursor-pointer group border-t"
-                        style={{ height: `${h}%`, background: "linear-gradient(to top, rgba(0,255,245,0.6), rgba(191,0,255,0.4))", borderTopColor: "rgba(0,255,245,0.8)" }}
-                      />
+                </div>
+                {/* Quick specs below image */}
+                <div className="grid grid-cols-3 gap-3 mt-4">
+                  {[
+                    { icon: "Zap", label: "Мощность", val: `${selectedCar.power} л.с.` },
+                    { icon: "Timer", label: "До 100 км/ч", val: `${selectedCar.acceleration} с` },
+                    { icon: "Fuel", label: "Топливо", val: selectedCar.fuel },
+                  ].map(s => (
+                    <div key={s.label} className="bg-white border border-[#ebebeb] rounded-sm p-3 text-center">
+                      <Icon name={s.icon} size={16} className="text-[#ccc] mx-auto mb-1.5" />
+                      <p className="text-[#111] font-semibold text-sm">{s.val}</p>
+                      <p className="text-[#bbb] text-[10px] mt-0.5">{s.label}</p>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between mt-2">
-                  {["12","13","14","15","16","17","18","19","20","21","22","23"].map(t => (
-                    <span key={t} className="font-mono-tech" style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)" }}>{t}</span>
-                  ))}
-                </div>
               </div>
-            </div>
-          )}
 
-          {/* PROFILE */}
-          {activeSection === "profile" && (
-            <div className="animate-fade-in">
-              <h1 className="font-orbitron text-2xl font-bold mb-6" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan)" }}>ПРОФИЛЬ</h1>
-              <div className="max-w-2xl">
-                <div className="border p-6 mb-4 relative overflow-hidden" style={{ backgroundColor: "rgba(13,17,23,0.88)", borderColor: "rgba(0,255,245,0.28)", clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))" }}>
-                  <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: "rgba(0,255,245,0.04)" }} />
-                  <div className="absolute inset-0 pointer-events-none" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px)" }} />
-                  <div className="flex items-start gap-5 relative">
-                    <div className="relative">
-                      <div className="w-20 h-20 hex-avatar flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }}>
-                        <span className="font-orbitron font-black text-2xl" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
+              {/* Info */}
+              <div>
+                <div className="mb-7">
+                  <p className="text-[#c9a96e] text-xs font-semibold tracking-[0.2em] uppercase mb-2">
+                    {TYPE_LABELS[selectedCar.type]} · {selectedCar.year}
+                  </p>
+                  <h1 className="font-playfair text-4xl sm:text-5xl font-semibold text-[#111] leading-tight mb-3">
+                    {selectedCar.brand}<br />{selectedCar.model}
+                  </h1>
+                  <p className="font-playfair text-2xl text-[#111]">{formatPrice(selectedCar.price)}</p>
+                </div>
+
+                {/* Full specs table */}
+                <div className="border border-[#ebebeb] rounded-sm overflow-hidden mb-6">
+                  <div className="bg-[#f8f8f8] border-b border-[#ebebeb] px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#555] tracking-wider uppercase">Технические характеристики</span>
+                    {!isPro && (
+                      <span className="flex items-center gap-1 text-[#c9a96e] text-xs font-medium">
+                        <Icon name="Lock" size={12} /> PRO
+                      </span>
+                    )}
+                  </div>
+                  <div className={`divide-y divide-[#f5f5f5] ${!isPro ? "select-none" : ""}`}>
+                    {[
+                      { label: "Двигатель", val: selectedCar.engine, locked: false },
+                      { label: "Привод", val: selectedCar.drive, locked: false },
+                      { label: "Макс. скорость", val: `${selectedCar.topSpeed} км/ч`, locked: true },
+                      { label: "Расход топлива", val: `${selectedCar.consumption} л/100км`, locked: true },
+                      { label: "Снаряжённая масса", val: `${selectedCar.weight} кг`, locked: true },
+                      { label: "Длина кузова", val: `${selectedCar.length} мм`, locked: true },
+                    ].map(row => (
+                      <div key={row.label} className="flex items-center justify-between px-4 py-3">
+                        <span className="text-sm text-[#888]">{row.label}</span>
+                        <span className={`text-sm font-medium ${row.locked && !isPro ? "blur-[5px] text-[#ccc] select-none" : "text-[#111]"}`}>
+                          {row.val}
+                        </span>
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 pulse-dot" style={{ backgroundColor: "var(--neon-green)", borderColor: "var(--dark-bg)" }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lock block */}
+                {!isPro ? (
+                  <div className="bg-[#111] text-white rounded-sm p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-[#c9a96e]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Icon name="Lock" size={15} className="text-[#c9a96e]" />
+                      </div>
+                      <p className="font-semibold text-sm">Часть данных скрыта</p>
                     </div>
-                    <div className="flex-1">
-                      <h2 className="font-orbitron text-xl font-black" style={{ color: "var(--neon-cyan)", textShadow: "0 0 12px var(--neon-cyan)" }}>{user.username.toUpperCase()}</h2>
-                      <p className="font-mono-tech text-sm mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>{user.email} · НЕЙРОСЕТЬ-КЛАСС</p>
-                      <p className="font-rajdhani text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>{user.bio || "Мемолог по призванию. Киберпанк по духу."}</p>
-                    </div>
-                    <button className="px-3 py-1.5 border font-orbitron text-sm font-bold transition-all" style={{ borderColor: "rgba(0,255,245,0.4)", color: "var(--neon-cyan)", clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}>
-                      РЕДАКТИРОВАТЬ
+                    <p className="text-white/45 text-sm mb-5 leading-relaxed">
+                      Подпишитесь на PRO, чтобы видеть полные характеристики: максимальную скорость, расход, массу, размеры и другие данные.
+                    </p>
+                    <button onClick={() => nav("pricing")} className="btn-gold px-5 py-2.5 rounded-sm w-full text-sm">
+                      Выбрать тариф — от 990 ₽/мес
                     </button>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-4 mt-6 pt-4 border-t" style={{ borderColor: "rgba(0,255,245,0.12)" }}>
-                    {[
-                      { label: "МЕМОВ", val: "284" },
-                      { label: "ПОДПИСЧИКИ", val: "1,204" },
-                      { label: "ПОДПИСКИ", val: "388" },
-                      { label: "ЛАЙКИ", val: "12.4K" },
-                    ].map(s => (
-                      <div key={s.label} className="text-center">
-                        <p className="font-orbitron text-xl font-black" style={{ color: "var(--neon-cyan)", textShadow: "0 0 8px var(--neon-cyan)" }}>{s.val}</p>
-                        <p className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{s.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-orbitron text-sm font-bold mb-3" style={{ color: "var(--neon-pink)", textShadow: "0 0 8px var(--neon-pink)" }}>// МОИ МЕМЫ</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    {MEMES.map(m => (
-                      <div key={m.id} className="border overflow-hidden group cursor-pointer transition-all" style={{ backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(0,255,245,0.12)", clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}>
-                        <div className="h-28 overflow-hidden relative">
-                          <img src={m.img} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                          <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)" }} />
-                        </div>
-                        <div className="p-2">
-                          <p className="font-mono-tech text-xs" style={{ color: "var(--neon-pink)" }}>{m.likes.toLocaleString()} ❤</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <button className="w-full bg-[#111] text-white py-3 rounded-sm text-sm font-medium hover:bg-[#333] transition-colors">
+                    Добавить в сравнение
+                  </button>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* SETTINGS */}
-          {activeSection === "settings" && (
-            <div className="animate-fade-in">
-              <h1 className="font-orbitron text-2xl font-bold mb-6" style={{ color: "var(--neon-cyan)", textShadow: "0 0 20px var(--neon-cyan)" }}>НАСТРОЙКИ АККАУНТА</h1>
-              <div className="max-w-lg space-y-3">
-                {[
-                  { section: "АККАУНТ", items: [
-                    { label: "Имя пользователя", val: "@user_404", icon: "User", toggle: null },
-                    { label: "Email", val: "user@memex.cyber", icon: "Mail", toggle: null },
-                    { label: "Пароль", val: "••••••••", icon: "Lock", toggle: null },
-                  ]},
-                  { section: "УВЕДОМЛЕНИЯ", items: [
-                    { label: "Новые сообщения", val: "ВКЛ", icon: "Bell", toggle: "msg" },
-                    { label: "Тренды", val: "ВКЛ", icon: "TrendingUp", toggle: "trend" },
-                    { label: "Системные", val: "ВЫКЛ", icon: "AlertCircle", toggle: "sys" },
-                  ]},
-                  { section: "ИНТЕРФЕЙС", items: [
-                    { label: "Тема", val: "КИБЕРПАНК", icon: "Zap", toggle: null },
-                    { label: "Язык", val: "РУССКИЙ", icon: "Globe", toggle: null },
-                    { label: "Звуки", val: "ВКЛ", icon: "Volume2", toggle: "sound" },
-                  ]},
-                ].map(group => (
-                  <div key={group.section} className="border overflow-hidden" style={{ backgroundColor: "rgba(13,17,23,0.85)", borderColor: "rgba(0,255,245,0.18)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
-                    <div className="px-4 py-2 border-b" style={{ backgroundColor: "rgba(0,255,245,0.05)", borderColor: "rgba(0,255,245,0.12)" }}>
-                      <span className="font-orbitron text-xs font-bold" style={{ color: "var(--neon-cyan)" }}>// {group.section}</span>
-                    </div>
-                    {group.items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between px-4 py-3 border-b last:border-0 transition-all" style={{ borderColor: "rgba(0,255,245,0.06)" }}>
-                        <div className="flex items-center gap-3">
-                          <Icon name={item.icon} size={15} style={{ color: "rgba(255,255,255,0.35)" }} />
-                          <span className="font-rajdhani font-semibold text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{item.label}</span>
-                        </div>
-                        {item.toggle ? (
-                          <button
-                            onClick={() => setToggleStates(s => ({ ...s, [item.toggle!]: !s[item.toggle as keyof typeof s] }))}
-                            className="relative w-12 h-6 border transition-all"
-                            style={{
-                              borderColor: toggleStates[item.toggle as keyof typeof toggleStates] ? "rgba(0,255,245,0.6)" : "rgba(255,255,255,0.15)",
-                              backgroundColor: toggleStates[item.toggle as keyof typeof toggleStates] ? "rgba(0,255,245,0.12)" : "transparent",
-                            }}
-                          >
-                            <div
-                              className="absolute top-0.5 w-5 h-5 transition-all"
-                              style={{
-                                left: toggleStates[item.toggle as keyof typeof toggleStates] ? "calc(100% - 22px)" : "2px",
-                                backgroundColor: toggleStates[item.toggle as keyof typeof toggleStates] ? "var(--neon-cyan)" : "rgba(255,255,255,0.25)",
-                                boxShadow: toggleStates[item.toggle as keyof typeof toggleStates] ? "0 0 8px var(--neon-cyan)" : "none",
-                              }}
-                            />
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono-tech text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{item.val}</span>
-                            <Icon name="ChevronRight" size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+        {/* ─── PRICING ─── */}
+        {page === "pricing" && (
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
+            <div className="text-center mb-14">
+              <span className="block w-10 h-0.5 bg-[#c9a96e] mx-auto mb-5" />
+              <h1 className="font-playfair text-4xl sm:text-5xl font-semibold text-[#111] mb-4">
+                Выберите план
+              </h1>
+              <p className="text-[#999] text-base max-w-sm mx-auto leading-relaxed">
+                Начните бесплатно или получите полный доступ к каталогу с подпиской PRO
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-16">
+              {/* Free */}
+              <div className="bg-white border border-[#ebebeb] rounded-sm p-8">
+                <div className="mb-6">
+                  <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#bbb] mb-3">Бесплатно</p>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="font-playfair text-4xl font-semibold text-[#111]">0 ₽</span>
+                    <span className="text-[#bbb] text-sm">/мес</span>
                   </div>
-                ))}
+                  <p className="text-[#999] text-sm">Для знакомства с каталогом</p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    [true, "Просмотр всех карточек"],
+                    [true, "Базовые параметры (мощность, разгон)"],
+                    [false, "Полные технические характеристики"],
+                    [false, "Сравнение автомобилей"],
+                    [false, "Расширенные фильтры"],
+                    [false, "Данные по расходу и массе"],
+                  ].map(([ok, text], i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm">
+                      <Icon name={ok ? "Check" : "X"} size={14} className={ok ? "text-green-500 flex-shrink-0" : "text-[#ddd] flex-shrink-0"} />
+                      <span className={ok ? "text-[#444]" : "text-[#ccc]"}>{text as string}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  disabled
+                  className="w-full py-3 rounded-sm text-sm font-medium bg-[#f5f5f5] text-[#aaa] cursor-default border border-[#ebebeb]"
+                >
+                  {isPro ? "Переключиться" : "Текущий план"}
+                </button>
+              </div>
 
-                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-3 border font-orbitron text-sm font-bold transition-all" style={{ borderColor: "rgba(255,0,106,0.4)", color: "var(--neon-pink)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
-                  <Icon name="LogOut" size={16} />
-                  ВЫЙТИ ИЗ СИСТЕМЫ
+              {/* PRO */}
+              <div className="bg-[#111] text-white rounded-sm p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0">
+                  <div className="bg-[#c9a96e] text-white text-[10px] font-bold tracking-[0.15em] uppercase px-4 py-1.5">
+                    Популярный
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#c9a96e] mb-3">PRO</p>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="font-playfair text-4xl font-semibold text-white">990 ₽</span>
+                    <span className="text-white/35 text-sm">/мес</span>
+                  </div>
+                  <p className="text-white/45 text-sm">Полный доступ без ограничений</p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "Всё из бесплатного плана",
+                    "Полные технические характеристики",
+                    "Сравнение до 4 автомобилей",
+                    "Расширенные фильтры и сортировка",
+                    "Данные по расходу, массе, размерам",
+                    "Приоритетное обновление каталога",
+                  ].map((text, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm">
+                      <Icon name="Check" size={14} className="text-[#c9a96e] flex-shrink-0" />
+                      <span className="text-white/75">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => { setIsPro(true); nav("catalog"); }}
+                  className={`w-full py-3 rounded-sm text-sm font-semibold transition-all ${
+                    isPro
+                      ? "bg-white/10 text-white/50 cursor-default"
+                      : "bg-[#c9a96e] text-white hover:bg-[#b8944f]"
+                  }`}
+                >
+                  {isPro ? "✓ Активен" : "Подключить PRO"}
                 </button>
               </div>
             </div>
-          )}
 
-        </main>
+            {/* FAQ */}
+            <div className="max-w-2xl mx-auto">
+              <h3 className="font-playfair text-2xl font-semibold text-[#111] text-center mb-8">Частые вопросы</h3>
+              <div className="space-y-4">
+                {[
+                  { q: "Можно ли отменить подписку?", a: "Да, в любой момент в личном кабинете. Доступ сохраняется до конца оплаченного периода." },
+                  { q: "Как часто обновляется каталог?", a: "Новые модели добавляются еженедельно. PRO-подписчики получают уведомления о новинках первыми." },
+                  { q: "Есть ли пробный период?", a: "Базовый доступ всегда бесплатен. При первой подписке PRO — 7 дней бесплатно." },
+                ].map((item, i) => (
+                  <div key={i} className="bg-white border border-[#ebebeb] rounded-sm p-5">
+                    <p className="font-semibold text-sm text-[#111] mb-2">{item.q}</p>
+                    <p className="text-sm text-[#888] leading-relaxed">{item.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
