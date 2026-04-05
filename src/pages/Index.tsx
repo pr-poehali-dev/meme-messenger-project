@@ -22,6 +22,7 @@ interface Car {
   length: number;
   isNew?: boolean;
   isPremium?: boolean;
+  isSoviet?: boolean;
 }
 
 const CARS: Car[] = [
@@ -73,6 +74,36 @@ const CARS: Car[] = [
     fuel: "Бензин", power: 212, drive: "Цепь", engine: "999cc Inline-4",
     acceleration: 3.1, topSpeed: 306, consumption: 6.5, weight: 193, length: 2090, isPremium: true,
   },
+  {
+    id: 9, brand: "Урал", model: "М-72 с коляской", year: 1956, price: 320000, isSoviet: true,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/85fc6d75-8f6e-4cad-9746-3dec2d5a6a1e.jpg",
+    fuel: "Бензин", power: 22, drive: "Цепь", engine: "750cc OHV Boxer",
+    acceleration: 18.0, topSpeed: 95, consumption: 7.5, weight: 380, length: 2420, isNew: false,
+  },
+  {
+    id: 10, brand: "Днепр", model: "К-750", year: 1967, price: 185000, isSoviet: true,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/b233551b-7723-45c2-8d0e-5d24a5c13389.jpg",
+    fuel: "Бензин", power: 26, drive: "Цепь", engine: "750cc Boxer",
+    acceleration: 16.5, topSpeed: 105, consumption: 6.8, weight: 215, length: 2200, isNew: false,
+  },
+  {
+    id: 11, brand: "Минск", model: "М-105", year: 1978, price: 95000, isSoviet: true,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/a029d840-109b-4e9f-8ec7-e154e76d69a7.jpg",
+    fuel: "Бензин", power: 9, drive: "Цепь", engine: "125cc 2T",
+    acceleration: 22.0, topSpeed: 80, consumption: 3.5, weight: 95, length: 1900, isNew: false,
+  },
+  {
+    id: 12, brand: "ИЖ", model: "Юпитер-5", year: 1985, price: 120000, isSoviet: true,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/a029d840-109b-4e9f-8ec7-e154e76d69a7.jpg",
+    fuel: "Бензин", power: 18, drive: "Цепь", engine: "350cc 2T",
+    acceleration: 14.0, topSpeed: 120, consumption: 5.2, weight: 155, length: 2085, isNew: false,
+  },
+  {
+    id: 13, brand: "Восход", model: "3М", year: 1982, price: 75000, isSoviet: true,
+    type: "moto", img: "https://cdn.poehali.dev/projects/acb3b6a8-4bcb-445d-888f-d91385131155/files/b233551b-7723-45c2-8d0e-5d24a5c13389.jpg",
+    fuel: "Бензин", power: 14, drive: "Цепь", engine: "175cc 2T",
+    acceleration: 20.0, topSpeed: 95, consumption: 4.0, weight: 112, length: 1980, isNew: false,
+  },
 ];
 
 const TYPE_LABELS: Record<string, string> = {
@@ -107,6 +138,11 @@ function CarCard({ car, index, onOpen, isPro }: { car: Car; index: number; onOpe
           {car.isPremium && (
             <span className="bg-[#c9a96e] text-white text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-sm">
               Premium
+            </span>
+          )}
+          {car.isSoviet && (
+            <span className="bg-[#c0392b] text-white text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-sm">
+              СССР
             </span>
           )}
         </div>
@@ -323,10 +359,29 @@ export default function Index() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {CARS.filter(c => c.type === "moto").map((car, i) => (
+                  {CARS.filter(c => c.type === "moto" && !c.isSoviet).map((car, i) => (
                     <CarCard key={car.id} car={car} index={i} onOpen={openCar} isPro={isPro} />
                   ))}
                 </div>
+              </div>
+            </section>
+
+            {/* Soviet moto */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+              <div className="flex items-end justify-between mb-10">
+                <div>
+                  <span className="block w-10 h-0.5 bg-[#c0392b] mb-4" />
+                  <p className="text-[#c0392b] text-xs font-semibold tracking-[0.2em] uppercase mb-2">Ретро / Советская классика</p>
+                  <h2 className="font-playfair text-3xl sm:text-4xl font-semibold text-[#111]">Мотоциклы СССР</h2>
+                </div>
+                <button onClick={() => { setFilter("moto"); nav("catalog"); }} className="text-sm text-[#999] hover:text-[#111] transition-colors flex items-center gap-1.5">
+                  Все мото <Icon name="ArrowRight" size={14} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {CARS.filter(c => c.isSoviet).map((car, i) => (
+                  <CarCard key={car.id} car={car} index={i} onOpen={openCar} isPro={isPro} />
+                ))}
               </div>
             </section>
 
@@ -444,6 +499,9 @@ export default function Index() {
                     )}
                     {selectedCar.isPremium && (
                       <span className="bg-[#c9a96e] text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">Premium</span>
+                    )}
+                    {selectedCar.isSoviet && (
+                      <span className="bg-[#c0392b] text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-sm">СССР</span>
                     )}
                   </div>
                 </div>
