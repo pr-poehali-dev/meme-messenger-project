@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
+const AUTH_URL = "https://functions.poehali.dev/24e96f37-d805-41a0-addb-f1335f99fac8";
+
 type Section = "home" | "chats" | "gallery" | "trends" | "profile" | "settings";
 
 interface Notification {
@@ -70,7 +72,19 @@ const NOTIFS: Notification[] = [
   { id: 5, text: "Системное обновление MEMEX v2.7.4", type: "system", time: "18:00", read: true },
 ];
 
-export default function Index() {
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  bio: string;
+}
+
+interface IndexProps {
+  user: User;
+  onLogout: () => void;
+}
+
+export default function Index({ user, onLogout }: IndexProps) {
   const [activeSection, setActiveSection] = useState<Section>("home");
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(NOTIFS);
@@ -79,6 +93,18 @@ export default function Index() {
   const [likedMemes, setLikedMemes] = useState<number[]>([]);
   const [showToast, setShowToast] = useState<string | null>(null);
   const [toggleStates, setToggleStates] = useState({ msg: true, trend: true, sound: true, sys: false });
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem("memex_token");
+    if (token) {
+      await fetch(`${AUTH_URL}?action=logout`, {
+        method: "POST",
+        headers: { "X-Session-Token": token },
+      }).catch(() => {});
+      localStorage.removeItem("memex_token");
+    }
+    onLogout();
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
   const totalUnread = CHATS.reduce((s, c) => s + c.unread, 0);
@@ -159,8 +185,8 @@ export default function Index() {
               )}
             </button>
 
-            <div className="w-8 h-8 flex items-center justify-center cursor-pointer hex-avatar" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }}>
-              <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>ВЫ</span>
+            <div className="w-8 h-8 flex items-center justify-center cursor-pointer hex-avatar" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }} onClick={() => setActiveSection("profile")}>
+              <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
             </div>
           </div>
         </div>
@@ -230,11 +256,11 @@ export default function Index() {
           <div className="p-3 border-t" style={{ borderColor: "rgba(0,255,245,0.12)" }}>
             <div className="flex items-center gap-2 px-1">
               <div className="w-7 h-7 hex-avatar flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }}>
-                <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>ВЫ</span>
+                <span className="font-orbitron text-xs font-bold" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
               </div>
               <div className="hidden lg:block min-w-0">
-                <p className="font-orbitron text-xs font-bold truncate" style={{ color: "var(--neon-cyan)" }}>ПОЛЬЗОВАТЕЛЬ</p>
-                <p className="font-mono-tech text-xs truncate" style={{ color: "rgba(255,255,255,0.3)" }}>@user_404</p>
+                <p className="font-orbitron text-xs font-bold truncate" style={{ color: "var(--neon-cyan)" }}>{user.username.toUpperCase()}</p>
+                <p className="font-mono-tech text-xs truncate" style={{ color: "rgba(255,255,255,0.3)" }}>{user.email}</p>
               </div>
             </div>
           </div>
@@ -559,14 +585,14 @@ export default function Index() {
                   <div className="flex items-start gap-5 relative">
                     <div className="relative">
                       <div className="w-20 h-20 hex-avatar flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))" }}>
-                        <span className="font-orbitron font-black text-2xl" style={{ color: "var(--dark-bg)" }}>ВЫ</span>
+                        <span className="font-orbitron font-black text-2xl" style={{ color: "var(--dark-bg)" }}>{user.username.slice(0, 2).toUpperCase()}</span>
                       </div>
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 pulse-dot" style={{ backgroundColor: "var(--neon-green)", borderColor: "var(--dark-bg)" }} />
                     </div>
                     <div className="flex-1">
-                      <h2 className="font-orbitron text-xl font-black" style={{ color: "var(--neon-cyan)", textShadow: "0 0 12px var(--neon-cyan)" }}>ПОЛЬЗОВАТЕЛЬ</h2>
-                      <p className="font-mono-tech text-sm mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>@user_404 · НЕЙРОСЕТЬ-КЛАСС</p>
-                      <p className="font-rajdhani text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>Мемолог по призванию. Киберпанк по духу. 404 — стиль жизни.</p>
+                      <h2 className="font-orbitron text-xl font-black" style={{ color: "var(--neon-cyan)", textShadow: "0 0 12px var(--neon-cyan)" }}>{user.username.toUpperCase()}</h2>
+                      <p className="font-mono-tech text-sm mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>{user.email} · НЕЙРОСЕТЬ-КЛАСС</p>
+                      <p className="font-rajdhani text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>{user.bio || "Мемолог по призванию. Киберпанк по духу."}</p>
                     </div>
                     <button className="px-3 py-1.5 border font-orbitron text-sm font-bold transition-all" style={{ borderColor: "rgba(0,255,245,0.4)", color: "var(--neon-cyan)", clipPath: "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))" }}>
                       РЕДАКТИРОВАТЬ
@@ -669,7 +695,7 @@ export default function Index() {
                   </div>
                 ))}
 
-                <button className="w-full flex items-center justify-center gap-2 py-3 border font-orbitron text-sm font-bold transition-all" style={{ borderColor: "rgba(255,0,106,0.4)", color: "var(--neon-pink)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
+                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-3 border font-orbitron text-sm font-bold transition-all" style={{ borderColor: "rgba(255,0,106,0.4)", color: "var(--neon-pink)", clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))" }}>
                   <Icon name="LogOut" size={16} />
                   ВЫЙТИ ИЗ СИСТЕМЫ
                 </button>
